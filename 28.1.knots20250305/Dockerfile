@@ -1,6 +1,11 @@
-FROM debian:bookworm-slim AS builder
+# common back image (allows ENV variable sharing)
+FROM debian:bookworm-20250520-slim AS base
 
-LABEL maintainer.0="Yasu Takumi (@yasutakumi)"
+ENV BITCOIN_VERSION=28.1.knots20250305
+
+FROM base AS builder
+
+LABEL maintainer.0="Cameron White (@slvrfn)"
 
 RUN apt-get update -y \
   && apt-get install -y ca-certificates curl git gnupg gosu python3 wget --no-install-recommends \
@@ -8,12 +13,11 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG TARGETPLATFORM
-ENV BITCOIN_VERSION=28.1.knots20250305
 ENV SIGS_REPO_URL="https://github.com/bitcoinknots/guix.sigs.git"
 ENV SIGS_CLONE_DIR="guix.sigs"
 ENV TMPDIR="/tmp/bitcoin_verify_binaries"
 
-COPY verify-${BITCOIN_VERSION%.*}.py .
+COPY ${BITCOIN_VERSION}/verify-${BITCOIN_VERSION%.*}.py .
 
 RUN set -ex \
   && if echo $BITCOIN_VERSION | grep -q "rc" ; then \
@@ -35,13 +39,12 @@ RUN set -ex \
   && rm -rf /opt/bitcoin-${BITCOIN_VERSION}/bin/bitcoin-qt
 
 # Second stage
-FROM debian:bookworm-slim
+FROM base AS runtime
 
 ARG UID=101
 ARG GID=101
 
-ENV BITCOIN_DATA=/home/bitcoin/.bitcoin
-ENV BITCOIN_VERSION=28.1.knots20250305
+ENV BITCOIN_DATA=/bitcoin/.bitcoin
 ENV PATH=/opt/bitcoin-${BITCOIN_VERSION}/bin:$PATH
 
 RUN groupadd --gid ${GID} bitcoin \
@@ -59,9 +62,9 @@ RUN groupadd --gid ${GID} bitcoin \
 
 COPY --from=builder /opt/bitcoin-${BITCOIN_VERSION} /opt/bitcoin-${BITCOIN_VERSION}
 
-COPY docker-entrypoint.sh /entrypoint.sh
+COPY ${BITCOIN_VERSION}/docker-entrypoint.sh /entrypoint.sh
 
-VOLUME ["/home/bitcoin/.bitcoin"]
+VOLUME ["/bitcoin/.bitcoin"]
 EXPOSE 8332 8333 18332 18333 18443 18444 38333 38332
 
 ENTRYPOINT ["/entrypoint.sh"]

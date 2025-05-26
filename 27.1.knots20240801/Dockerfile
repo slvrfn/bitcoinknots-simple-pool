@@ -1,6 +1,11 @@
-FROM debian:bookworm-slim AS builder
+# common back image (allows ENV variable sharing)
+FROM debian:bookworm-20250520-slim AS base
 
-LABEL maintainer.0="Yasu Takumi (@yasutakumi)"
+ENV BITCOIN_VERSION=27.1.knots20240801
+
+FROM base AS builder
+
+LABEL maintainer.0="Cameron White (@slvrfn)"
 
 RUN apt-get update -y \
   && apt-get install -y ca-certificates curl git gnupg gosu python3 wget --no-install-recommends \
@@ -8,13 +13,12 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG TARGETPLATFORM
-ENV BITCOIN_VERSION=27.1.knots20240801
 ENV SIGS_REPO_URL="https://github.com/bitcoinknots/guix.sigs.git"
 ENV SIGS_CLONE_DIR="guix.sigs"
-ENV VERIFY_SCRIPT_URL="https://raw.githubusercontent.com/bitcoinknots/bitcoin/v${BITCOIN_VERSION}/contrib/verify-binaries/verify.py"
 ENV TMPDIR="/tmp/bitcoin_verify_binaries"
 
-COPY verify-27.1.py ./
+COPY ${BITCOIN_VERSION}/verify-${BITCOIN_VERSION%.*}.py .
+
 RUN set -ex \
   && if echo $BITCOIN_VERSION | grep -q "rc" ; then \
        VERIFY_VERSION=$(echo $BITCOIN_VERSION | sed 's/\(.*\)rc\([0-9]*\)/\1-rc\2/'); \
@@ -35,13 +39,12 @@ RUN set -ex \
   && rm -rf /opt/bitcoin-${BITCOIN_VERSION}/bin/bitcoin-qt
 
 # Second stage
-FROM debian:bookworm-slim
+FROM base AS runtime
 
 ARG UID=101
 ARG GID=101
 
-ENV BITCOIN_DATA=/home/bitcoin/.bitcoin
-ENV BITCOIN_VERSION=27.1.knots20240801
+ENV BITCOIN_DATA=/bitcoin/.bitcoin
 ENV PATH=/opt/bitcoin-${BITCOIN_VERSION}/bin:$PATH
 
 RUN groupadd --gid ${GID} bitcoin \
@@ -59,11 +62,12 @@ RUN groupadd --gid ${GID} bitcoin \
 
 COPY --from=builder /opt/bitcoin-${BITCOIN_VERSION} /opt/bitcoin-${BITCOIN_VERSION}
 
-COPY docker-entrypoint.sh /entrypoint.sh
+COPY ${BITCOIN_VERSION}/docker-entrypoint.sh /entrypoint.sh
 
-VOLUME ["/home/bitcoin/.bitcoin"]
+VOLUME ["/bitcoin/.bitcoin"]
+
 EXPOSE 8332 8333 18332 18333 18443 18444 38333 38332
 
 ENTRYPOINT ["/entrypoint.sh"]
-RUN bitcoind -version | grep "Bitcoin Knots version v${PADDED_VERSION}"
+RUN bitcoind -version | grep "Bitcoin Knots daemon version v${PADDED_VERSION}"
 CMD ["bitcoind"]
