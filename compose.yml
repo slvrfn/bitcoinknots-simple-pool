@@ -1,0 +1,91 @@
+services:
+  bitcoind-node:
+    image: bitcoind-k
+    container_name: "bitcoindk"
+    volumes:
+      - "bitcoind-data:/bitcoin/.bitcoin"
+      - "./bitcoin.conf:/bitcoin/.bitcoin/bitcoin.conf:ro"
+    ports:
+      - "8333:8333" # P2P
+    expose:
+      - "8332" #JSON-RPC/REST
+    restart: unless-stopped
+    command: ["-conf=/bitcoin/.bitcoin/bitcoin.conf"]
+    networks:
+      - public-pool
+
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    restart: unless-stopped
+    command:
+      - "--accesslog=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.selfhostedservices.acme.tlschallenge=true"
+      - "--certificatesresolvers.selfhostedservices.acme.email=REPLACE_ME_EMAIL"
+      - "--certificatesresolvers.selfhostedservices.acme.storage=/letsencrypt/acme.json"
+      - "--serversTransport.insecureSkipVerify=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "lets-encrypt-data:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  public-pool:
+    container_name: public-pool
+    image: benjamin-wilson/publicpool:latest
+    restart: unless-stopped
+    expose:
+      - "8332" #JSON-RPC/REST
+    volumes:
+      - "public-pool-db:/public-pool/DB"
+      - "./pool.env:/public-pool/.env:ro"
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.public-pool-api.rule=Host(`REPLACE_ME_DOMAIN`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.public-pool-api.tls.certresolver=selfhostedservices"
+      - "traefik.http.routers.public-pool-api.entrypoints=websecure"
+      - "traefik.http.services.public-pool-api.loadbalancer.server.port=3334"
+    networks:
+      - public-pool
+
+  public-pool-ui:
+    container_name: public-pool-ui
+    image: benjamin-wilson/publicpool-ui:latest
+    restart: unless-stopped
+    environment:
+      - DOMAIN=REPLACE_ME_DOMAIN
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.public-pool-ui.rule=Host(`REPLACE_ME_DOMAIN`)"
+      - "traefik.http.routers.public-pool-ui.tls.certresolver=selfhostedservices"
+      - "traefik.http.routers.public-pool-ui.entrypoints=websecure"
+      - "traefik.http.services.public-pool-ui.loadbalancer.server.port=80"
+    networks:
+      - public-pool
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - public-pool
+
+volumes:
+  lets-encrypt-data:
+  bitcoind-data:
+  public-pool-db:
+
+networks:
+  public-pool:
+    name: public-pool

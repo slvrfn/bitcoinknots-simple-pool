@@ -1,103 +1,111 @@
-# bitcoinknots/bitcoin
+# bitcoinknots-simple-pool
 
-[![bitcoinknots/bitcoin][docker-pulls-image]][docker-hub-url] [![bitcoinknots/bitcoin][docker-stars-image]][docker-hub-url] [![bitcoinknots/bitcoin][docker-size-image]][docker-hub-url]
+This is a repository to simplify solo-mining via Docker Compose.
+
+This is made possible by spinning up a new Bitcoin Knots Public-Pool instance.
+
+For background information to setup a public-pool instance using this repo, please read the full guide on [Sethforprivacy](https://github.com/sethforprivacy)'s blog:
+
+https://sethforprivacy.com/guides/run-your-own-bitcoin-pool
+
+This repo contains:
+- Dockerfiles which can be used to build a Bitcoin Knots image
+- Docker-Compose configuration which defines a service to host a local Bitcoin node & Public-Pool instance
 
 ## Looking for Bitcoin Core images?
 
-The `bitcoinknots/bitcoin` (Bitcoin Knots) images here are drop-in replacements for the `bitcoin/bitcoin` (Bitcoin Core) images. If you're looking for actual Bitcoin Core images, go to [willcl-ark/bitcoin-core-docker](https://github.com/willcl-ark/bitcoin-core-docker).
+The `bitcoind-k` (Bitcoin Knots) image here is drop-in replacements for the `bitcoin/bitcoin` (Bitcoin Core) images. If you're looking for actual Bitcoin Core images, go to [willcl-ark/bitcoin-core-docker](https://github.com/willcl-ark/bitcoin-core-docker).
 
 ## About the images
 
 > [!IMPORTANT]
-> These are **unofficial** Bitcoin Knots images, not endorsed or associated with the Bitcoin Knots project on GitHub: github.com/bitcoinknots/bitcoin
+> These Dockerfiles create **unofficial** Bitcoin Knots images, not endorsed or associated with the Bitcoin Knots project on GitHub: github.com/bitcoinknots/bitcoin
 
-- The images are aimed at testing environments (e.g. for downstream or bitcoin-adjacent projects), as it is non-trivial to verify the authenticity of the Bitcoin Knots binaries inside.
-  - When using Bitcoin Knots software for non-testing purposes you should always ensure that you have either: i) built it from source yourself, or ii) verfied your binary download.
-- The images are built using CI workflows found in this repo: https://github.com/yasutakumi/bitcoinknots-docker
-- The images are built with support for the following platforms:
-  | Image                                   | Platforms                              |
-  |-----------------------------------------|----------------------------------------|
-  | `bitcoinknots/bitcoin:latest`           | linux/amd64, linux/arm64, linux/arm/v7 |
-  | `bitcoinknots/bitcoin:alpine`           | linux/amd64                            |
-  | `bitcoinknots/bitcoin:<version>`        | linux/amd64, linux/arm64, linux/arm/v7 |
-  | `bitcoinknots/bitcoin:<version>-alpine` | linux/amd64                            |
-  | `bitcoinknots/bitcoin:master`           | linux/amd64, linux/arm64               |
-  | `bitcoinknots/bitcoin:master-alpine`    | linux/amd64, linux/arm64               |
-
-- The Debian-based (non-alpine) images use pre-built binaries pulled from bitcoinknots.org. These binaries are built using the Bitcoin Knots [reproducible build](https://github.com/bitcoinknots/bitcoin/blob/master/contrib/guix/README.md) system, and signatures attesting to them can be found in the [guix.sigs](https://github.com/bitcoinknots/guix.sigs) repo. Signatures are checked in the build process for these docker images using the [verify_binaries.py](https://github.com/bitcoinknots/bitcoin/tree/master/contrib/verify-binaries) script from the bitcoinknots/bitcoin git repository.
-- The alpine images are built from source inside the CI.
-- The nightly master image is source-built, and targeted at the linux/amd64 and linux/arm64 platforms.
-
-## Tags
-
-- `28.1.knots20250305`, `28.1`, `28`, `latest` ([28.1.knots20250305/Dockerfile](https://github.com/yasutakumi/bitcoinknots-docker/blob/master/28.1.knots20250305/Dockerfile)) [**multi-platform**]
-- `28.1.knots20250305-alpine`, `28.1-alpine`, `28-alpine`, `alpine` ([28.1.knots20250305/alpine/Dockerfile](https://github.com/yasutakumi/bitcoinknots-docker/blob/master/28.1.knots20250305/alpine/Dockerfile))
-- `27.1.knots20240801`, `27.1`, `27` ([27.1.knots20240801/Dockerfile](https://github.com/yasutakumi/bitcoinknots-docker/blob/master/27.1.knots20240801/Dockerfile)) [**multi-platform**]
-- `27.1.knots20240801-alpine`, `27.1-alpine`, `27-alpine` ([27.1.knots20240801/alpine/Dockerfile](https://github.com/yasutakumi/bitcoinknots-docker/blob/master/27.1.knots20240801/alpine/Dockerfile))
-
-### Picking the right tag
+- The Bitcoin Knots images specified here `bitcoind-k` are not hosted anywhere, and are left to you to build as shown in the [build section](#how-to-build-the-bitcoin-knots-images). _"Don't trust, verify"_
+- The Debian-based (non-alpine) images use pre-built binaries pulled from [bitcoinknots.org](bitcoinknots.org). These binaries are built using the Bitcoin Knots [reproducible build](https://github.com/bitcoinknots/bitcoin/blob/master/contrib/guix/README.md) system, and signatures attesting to them can be found in the [guix.sigs](https://github.com/bitcoinknots/guix.sigs) repo. Signatures are checked in the build process for these docker images using the [verify_binaries.py](https://github.com/bitcoinknots/bitcoin/tree/master/contrib/verify-binaries) script from the bitcoinknots/bitcoin git repository.
+- The alpine images are built from source.
 
 > [!IMPORTANT]
 > The Alpine Linux distribution, whilst being a resource efficient Linux distribution with security in mind, is not officially supported by the Bitcoin Knots team nor the Bitcoin Core team — use at your own risk.
 
-#### Latest released version
-
-These tags refer to the latest major version, and the latest minor and patch of this version where applicable.
-
-- `bitcoinknots/bitcoin:latest`: Release binaries directly from bitcoinknots.org. Caution when specifying this tag in production as blindly upgrading Bitcoin Knots major versions can introduce new behaviours.
-- `bitcoinknots/bitcoin:alpine`: Source-built binaries using the Alpine Linux distribution.
-
-#### Specific released version
-
-These tags refer to a specific version of Bitcoin Knots.
-
-- `bitcoinknots/bitcoin:<version>`: Release binaries of a specific release directly from bitcoinknots.org (e.g. `28.1` or `27`).
-- `bitcoinknots/bitcoin:<version>-alpine`: Source-built binaries of a specific release of Bitcoin Knots (e.g. `28.1` or `27`) using the Alpine Linux distribution.
-
-#### Nightly master build
-
-These tags refer to nightly builds of the https://github.com/bitcoinknots/bitcoin default branch, both Debian-based and Alpine-based.
-
-- `bitcoinknots/bitcoin:master`: Source-built binaries on Debian Linux, compiled nightly using default branch pulled from https://github.com/bitcoinknots/bitcoin.
-- `bitcoinknots/bitcoin:master-alpine`: Source-built binaries on Alpine Linux, compiled nightly using default branch pulled from https://github.com/bitcoinknots/bitcoin.
-
 ## Usage
 
-### How to use these images
+### How to build the Bitcoin Knots images
 
-These images contain the main binaries from the Bitcoin Knots project - `bitcoind`, `bitcoin-cli` and `bitcoin-tx`. The images behave like binaries, so you can pass arguments to the image and they will be forwarded to the `bitcoind` binary (by default, other binaries on demand):
+A script is provided here to manually build the Bitcoin knots images at `scripts/build_knots.sh`. This script simplifies the process of building the images locally, and provides an option to build the Debian-based or Alpine-based images:
 
 ```sh
-❯ docker run --rm -it bitcoinknots/bitcoin \
+Usage: ./scripts/build_knots.sh [OPTIONS]
+Options:
+ -h, --help      Display this help message
+ -a, --alpine    Build the image based on Alpine
+ -v, --version   Specify the version of Bitcoin Knots to be built
+```
+
+By default, the version of Bitcoin Knots specified in `KNOTS_VERSION` will be built. This can be changed by specifying an alternate version using the `-v` flag as shown above. 
+
+### How to update the RPC Auth details and Public-Pool Domain
+
+By default, this repo defines:
+- the RPC credentials as `rpcuser=bitcoin` and `rpcpassword=bitcoin`
+- the Public-Pool domain as `localhost` and the LetsEncrypt SSL certificate email as `example@example.com`.
+
+A script is provided here at `scripts/setup.sh` to simplify the process of updating the Bitcoin Node's RPC authentication credentials and also the Domain/Email used by Public-Pool.
+
+```sh
+Usage: ./scripts/setup.sh [OPTIONS]
+Options:
+ -h, --help     Display this help message
+ -r, --rpc      Assign Both RPC Auth credentials
+ -d, --domain   Assign Public-Pool Domain/Email
+ -a, --all      Assign Both RPC Auth credentials and the Public-Pool Domain/Email
+```
+When running the script, you must pass in one of the options `-r` `-d` (or `-a`), for any modifications to be made.
+
+The Public-Pool service/UI can be hosted locally (localhost is default), or hosted on a publicly accessible URL such as https://web.public-pool.io/#/.
+
+### How to start the local node/mining-pool service
+Two scripts are provided here to simplify the process of starting/stopping the local Bitcoin node and Public-Pool service. They are simple wrappers of `docker-compose`, and are expected to be run from the repo's root directory.
+
+- `./scripts/start_node.sh`
+- `./scripts/stop_node.sh`
+
+### How to use the Bitcoin Knots images
+
+These images contain the main binaries from the Bitcoin Knots project - `bitcoind`, `bitcoin-cli` and `bitcoin-tx`. The images behave like binaries, so you can pass arguments to the image, and they will be forwarded to the `bitcoind` binary (by default, other binaries on demand):
+
+```sh
+❯ docker run --rm -it bitcoind-k \
   -printtoconsole \
   -regtest=1 \
   -rpcallowip=172.17.0.0/16 \
-  -rpcauth='foo:7d9ba5ae63c3d4dc30583ff4fe65a67e$9e3634e81c11659e3de036d0bf88f89cd169c1039e6e09607562d54765c649cc'
+  -rpcuser=bitcoin \
+  -rpcpassword=bitcoin
 ```
 
-_Note: [learn more](#using-rpcauth-for-remote-authentication) about how `-rpcauth` works for remote authentication._
+_Note: [learn more](#generate-secure-rpc-credentials) about how you can automatically generate secure values for `-rpcuser` & `-rpcpassword`._
 
-By default, `bitcoind` will run as user `bitcoin` in the group `bitcoin` for security reasons and its default data directory is set to `/home/bitcoin/.bitcoin`. If you'd like to customize where `bitcoin` stores its data, you must use the `BITCOIN_DATA` environment variable. The directory will be automatically created with the correct permissions for the `bitcoin` user and `bitcoind` automatically configured to use it.
+By default, `bitcoind` will run as user `bitcoin` in the group `bitcoin` for security reasons and its default data directory is set to `/bitcoin/.bitcoin`. If you'd like to customize where `bitcoin` stores its data, you must use the `BITCOIN_DATA` environment variable. The directory will be automatically created with the correct permissions for the `bitcoin` user and `bitcoind` automatically configured to use it.
 
 ```sh
-❯ docker run --env BITCOIN_DATA=/var/lib/bitcoinknots --rm -it bitcoinknots/bitcoin \
+❯ docker run --env BITCOIN_DATA=/var/lib/bitcoinknots --rm -it bitcoind-k \
   -printtoconsole \
   -regtest=1
 ```
 
-You can also mount a directory in a volume under `/home/bitcoin/.bitcoin` in case you want to access it on the host:
+You can also mount a directory in a volume under `/bitcoin/.bitcoin` in case you want to access it on the host:
 
 ```sh
-❯ docker run -v ${PWD}/data:/home/bitcoin/.bitcoin -it --rm bitcoinknots/bitcoin \
+❯ docker run -v ${PWD}/data:/bitcoin/.bitcoin -it --rm bitcoind-k \
   -printtoconsole \
   -regtest=1
 ```
 
-You can optionally create a service using `docker-compose`:
+You can optionally create a custom service using `docker-compose`:
 
 ```yml
 bitcoin-server:
-  image: bitcoinknots/bitcoin:latest
+  image: bitcoind-k
   command:
     -printtoconsole
     -regtest=1
@@ -110,7 +118,7 @@ By default, images are created with a `bitcoin` user/group using a static UID/GI
 If you'd like to use the pre-built images, you can also customize the UID/GID on runtime via environment variables `$UID` and `$GID`:
 
 ```sh
-❯ docker run -e UID=10000 -e GID=10000 -it --rm bitcoinknots/bitcoin \
+❯ docker run -e UID=10000 -e GID=10000 -it --rm bitcoind-k \
   -printtoconsole \
   -regtest=1
 ```
@@ -123,14 +131,14 @@ There are two communications methods to interact with a running Bitcoin Knots da
 
 The first one is using a cookie-based local authentication. It doesn't require any special authentication information as running a process locally under the same user that was used to launch the Bitcoin Knots daemon allows it to read the cookie file previously generated by the daemon for clients. The downside of this method is that it requires local machine access.
 
-The second option is making a remote procedure call using a username and password combination. This has the advantage of not requiring local machine access, but in order to keep your credentials safe you should use the newer `rpcauth` authentication mechanism.
+The second option is making a remote procedure call using a username and password combination. This has the advantage of not requiring local machine access. You can automatically generate secure values for the RPC credentials: [learn more](#generate-secure-rpc-credentials).
 
 #### Using cookie-based local authentication
 
 Start by launch the Bitcoin Knots daemon:
 
 ```sh
-❯ docker run --rm --name bitcoin-server -it bitcoinknots/bitcoin \
+❯ docker run --rm --name bitcoin-server -it bitcoind-k \
   -printtoconsole \
   -regtest=1
 ```
@@ -153,18 +161,51 @@ Then, inside the running same `bitcoin-server` container, locally execute the qu
 }
 ```
 
-`bitcoin-cli` reads the authentication credentials automatically from the [data directory](https://github.com/bitcoinknots/bitcoin/blob/master/doc/files.md#data-directory-layout), on mainnet this means from `/home/bitcoin/.bitcoin/.cookie`.
+`bitcoin-cli` reads the authentication credentials automatically from the [data directory](https://github.com/bitcoinknots/bitcoin/blob/master/doc/files.md#data-directory-layout), on mainnet this means from `$DATA_DIR/.cookie`.
 
-#### Using rpcauth for remote authentication
+#### Generate secure RPC credentials
 
-Before setting up remote authentication, you will need to generate the `rpcauth` line that will hold the credentials for the Bitcoind Knots daemon. You can either do this yourself by constructing the line with the format `<user>:<salt>$<hash>` or use the official [`rpcauth.py`](https://github.com/bitcoinknots/bitcoin/blob/master/share/rpcauth/rpcauth.py)  script to generate this line for you, including a random password that is printed to the console.
-
-_Note: This is a Python 3 script. use `[...] | python3 - <username>` when executing on macOS._
+Before setting up remote authentication, you can securely generate the `rpcuser` & `rpcpassword` credentials for the Bitcoind Knots daemon (and Public-Pool service). You can either do this yourself by updating the fields in `bitcoin.conf` & `pool.env` or use the `scripts/setup.sh` script (with the `-r` flag) to update these lines for you, printing the updated details to the console.
 
 Example:
 
 ```sh
-❯ curl -sSL https://raw.githubusercontent.com/bitcoinknots/bitcoin/master/share/rpcauth/rpcauth.py | python - <username>
+❯ ./scripts/setup.sh -r
+Updating RPC credentials
+
+WARNING: The following credentials will only be displayed ONCE.
+Please save them in a secure location immediately!!!!!!!!
+
+Generated RPC credentials:
+RPC User: ZaFODLzqlXO3gldj3Diby
+RPC Password: pvYILLeAhpqSVZsYiqLGk
+
+These credentials have been automatically added to your bitcoin.conf and pool.env.
+Make sure to keep these files secure and do not share them.
+```
+
+Note that for each run, the output will be always different as the values are randomly generated.
+
+> [!IMPORTANT]
+> These values should be protected. If an unauthorized party gets access to these credentials, they will be able to access your Bitcoin Node over RPC.
+
+#### Using rpcauth for remote authentication
+
+An alternate (more recent) mode of remote authentication, is using `rpcauth`. If you want to use this method, you will need to generate the `rpcauth` line that will hold the credentials for the Bitcoind Knots daemon. 
+
+You can do this yourself by:
+- constructing the line with the format `<user>:<salt>$<hash>`
+- using the included script `scripts/rpcauth/rpcauth.py`
+- using the official [rpcauth.py](https://github.com/bitcoinknots/bitcoin/blob/master/share/rpcauth/rpcauth.py)
+
+The latter two are scripts to generate this line for you, including a random password that is printed to the console
+
+_Note: This is a Python 3 script. use `python3 scripts/rpcauth/rpcauth.py <username>` when executing on macOS._
+
+Example:
+
+```sh
+❯ python scripts/rpcauth/rpcauth.py <username>
 
 String to be appended to bitcoin.conf:
 rpcauth=foo:7d9ba5ae63c3d4dc30583ff4fe65a67e$9e3634e81c11659e3de036d0bf88f89cd169c1039e6e09607562d54765c649cc
@@ -174,12 +215,15 @@ qDDZdeQ5vw9XXFeVnXT4PZ--tGN2xNjjR4nrtyszZx0=
 
 Note that for each run, even if the username remains the same, the output will be always different as a new salt and password are generated.
 
+> [!IMPORTANT]
+> As of the time of writing, this auth method is not supported by Public-Pool mining pool included in the provided docker-compose configuration.
+
 Now that you have your credentials, you need to start the Bitcoin Knots daemon with the `-rpcauth` option. Alternatively, you could append the line to a `bitcoin.conf` file and mount it on the container.
 
 Let's opt for the Docker way:
 
 ```sh
-❯ docker run --rm --name bitcoin-server -it bitcoinknots/bitcoin \
+❯ docker run --rm --name bitcoin-server -it bitcoind-k \
   -printtoconsole \
   -regtest=1 \
   -rpcallowip=172.17.0.0/16 \
@@ -194,7 +238,7 @@ Two important notes:
 To avoid any confusion about whether or not a remote call is being made, let's spin up another container to execute `bitcoin-cli` and connect it via the Docker network using the password generated above:
 
 ```sh
-❯ docker run -it --link bitcoin-server --rm bitcoinknots/bitcoin \
+❯ docker run -it --link bitcoin-server --rm bitcoind-k \
   bitcoin-cli \
   -rpcconnect=bitcoin-server \
   -regtest \
@@ -221,12 +265,13 @@ Example for running a node in `regtest` mode mapping JSON-RPC/REST (18443) and P
 docker run --rm -it \
   -p 18443:18443 \
   -p 18444:18444 \
-  bitcoinknots/bitcoin \
+  bitcoind-k \
   -printtoconsole \
   -regtest=1 \
   -rpcallowip=172.17.0.0/16 \
   -rpcbind=0.0.0.0 \
-  -rpcauth='foo:7d9ba5ae63c3d4dc30583ff4fe65a67e$9e3634e81c11659e3de036d0bf88f89cd169c1039e6e09607562d54765c649cc'
+  -rpcuser=bitcoin \
+  -rpcpassword=bitcoin
 ```
 
 To test that mapping worked, you can send a JSON-RPC curl request to the host port:
@@ -257,11 +302,18 @@ curl --data-binary '{"jsonrpc":"1.0","id":"1","method":"getnetworkinfo","params"
 
 ## License
 
-[License information](https://github.com/bitcoinknots/bitcoin/blob/master/COPYING) for the software contained in this image.
+[License information](https://github.com/slvrfn/bitcoinknots-simple-pool/blob/master/LICENSE) For the code in this repo.
 
-[License information](https://github.com/yasutakumi/bitcoinknots-docker/blob/master/LICENSE) for the [yasutakumi/bitcoinknots-docker][docker-hub-url] docker project.
+- [Bitcoin Knots](https://github.com/bitcoinknots/bitcoin/blob/master/COPYING) for the Bitcoin Knots software contained in this repo.
+- [Public-Pool](https://github.com/benjamin-wilson/public-pool/blob/master/LICENSE.txt) for the Public-Pool software contained in this repo.
+- [traefik](https://github.com/traefik/traefik-library-image/blob/master/LICENSE) for the traefik software contained in this repo.
+- [watchtower](https://github.com/containrrr/watchtower/blob/main/LICENSE.md) for the watchtower software contained in this repo.
 
-[docker-hub-url]: https://hub.docker.com/r/bitcoinknots/bitcoin
-[docker-pulls-image]: https://img.shields.io/docker/pulls/bitcoinknots/bitcoin.svg?style=flat-square
-[docker-size-image]: https://img.shields.io/docker/image-size/bitcoinknots/bitcoin?style=flat-square
-[docker-stars-image]: https://img.shields.io/docker/stars/bitcoinknots/bitcoin.svg?style=flat-square
+### Credits
+This repository is based on the work of:
+- [Nicolas Dorier](https://github.com/NicolasDorier)
+- [Benjamin Wilson](https://github.com/benjamin-wilson/)
+- [Sethforprivacy](https://github.com/sethforprivacy)
+- [Kyle Manna](https://github.com/kylemanna)
+- [TheBitcoinProf](https://github.com/TheBitcoinProf/)
+- [Yasu Takumi](https://github.com/yasutakumi)
