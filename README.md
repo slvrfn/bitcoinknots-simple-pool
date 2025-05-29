@@ -41,8 +41,8 @@ Options:
  -a, --alpine    Build the image based on Alpine
  -v, --version   Specify the version of Bitcoin Knots to be built
 ```
-
-By default, the version of Bitcoin Knots specified in `KNOTS_VERSION` will be built. This can be changed by specifying an alternate version using the `-v` flag as shown above. 
+> [!IMPORTANT]
+> By default, the version of Bitcoin Knots specified in `LATEST_KNOTS` will be built. This can be changed by specifying an alternate version using the `-v` flag as shown above. Other versions that have been tested with this Docker build process are in `KNOTS_VERSIONS`.
 
 ### How to update the RPC Auth details and Public-Pool Domain
 

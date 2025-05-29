@@ -1,0 +1,7 @@
+28.1.knots20250305 (incl alpine)
+27.1.knots20240801 (incl alpine)
+27.1.knots20240621 (incl alpine) (need to lower verify signature threshold to 4)
+26.1.knots20240513 (incl alpine) (need to lower verify signature threshold to 3)
+26.1.knots20240325 (need to lower verify signature threshold to 3)
+25.1.knots20231115 (need to lower verify signature threshold to 3)
+23.0.knots20220529 (need to lower verify signature threshold to 3)

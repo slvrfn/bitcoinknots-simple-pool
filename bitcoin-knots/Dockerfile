@@ -1,7 +1,7 @@
 # common back image (allows ENV variable sharing)
 FROM debian:bookworm-20250520-slim AS base
 
-ENV BITCOIN_VERSION=27.1.knots20240801
+ARG BITCOIN_VERSION
 
 FROM base AS builder
 
@@ -13,11 +13,11 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG TARGETPLATFORM
-ENV SIGS_REPO_URL="https://github.com/bitcoinknots/guix.sigs.git"
-ENV SIGS_CLONE_DIR="guix.sigs"
-ENV TMPDIR="/tmp/bitcoin_verify_binaries"
+ENV SIGS_REPO_URL="https://github.com/bitcoinknots/guix.sigs.git" \
+    SIGS_CLONE_DIR="guix.sigs" \
+    TMPDIR="/tmp/bitcoin_verify_binaries"
 
-COPY ${BITCOIN_VERSION}/verify-${BITCOIN_VERSION%.*}.py .
+COPY bitcoin-knots/verify.py .
 
 RUN set -ex \
   && if echo $BITCOIN_VERSION | grep -q "rc" ; then \
@@ -31,8 +31,7 @@ RUN set -ex \
   && if [ "${TARGETPLATFORM}" = "linux/arm/v7" ]; then export TARGETPLATFORM=arm-linux-gnueabihf; fi \
   && git clone ${SIGS_REPO_URL} ${SIGS_CLONE_DIR} \
   && gpg --import "${SIGS_CLONE_DIR}"/builder-keys/* \
-  && ./verify-${BITCOIN_VERSION%.*}.py \
-    --min-good-sigs 6 pub "${VERIFY_VERSION}-linux" \
+  && ./verify.py --min-good-sigs 6 pub "${VERIFY_VERSION}-linux" \
   && tar -xzf "${TMPDIR}.${VERIFY_VERSION}-linux/bitcoin-${BITCOIN_VERSION}-${TARGETPLATFORM}.tar.gz" -C /opt \
   && rm -rf ${SIGS_CLONE_DIR} \
   && rm -rf ${TMPDIR} \
@@ -62,12 +61,14 @@ RUN groupadd --gid ${GID} bitcoin \
 
 COPY --from=builder /opt/bitcoin-${BITCOIN_VERSION} /opt/bitcoin-${BITCOIN_VERSION}
 
-COPY ${BITCOIN_VERSION}/docker-entrypoint.sh /entrypoint.sh
+COPY bitcoin-knots/docker-entrypoint.sh /entrypoint.sh
 
 VOLUME ["/bitcoin/.bitcoin"]
 
 EXPOSE 8332 8333 18332 18333 18443 18444 38333 38332
 
 ENTRYPOINT ["/entrypoint.sh"]
-RUN bitcoind -version | grep "Bitcoin Knots daemon version v${PADDED_VERSION}"
+
+RUN bitcoind -version | grep "Bitcoin Knots .*version v${PADDED_VERSION}"
+
 CMD ["bitcoind"]
