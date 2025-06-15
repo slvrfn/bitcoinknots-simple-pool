@@ -1,0 +1,80 @@
+services:
+  bitcoind-node:
+    image: bitcoind-k
+    container_name: "bitcoindk"
+    restart: unless-stopped
+    ports:
+      - "8333:8333" # P2P
+      - "8332:8332" # JSON-RPC/REST
+    expose:
+      - "3000:3000" # zeromq
+    volumes:
+      - "bitcoind-data:/bitcoin/.bitcoin"
+      - "./bitcoin.conf:/bitcoin/.bitcoin/bitcoin.conf"
+    command: [ "-conf=/bitcoin/.bitcoin/bitcoin.conf" ]
+    profiles: [ "node", "pool" ]
+
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    restart: unless-stopped
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    command:
+      - "--accesslog=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    profiles: [ "pool" ]
+
+  public-pool:
+    container_name: public-pool
+    image: ghcr.io/sethforprivacy/public-pool:latest
+    restart: unless-stopped
+    ports:
+      - "3333:3333/tcp"
+    volumes:
+      - "public-pool-db:/public-pool/DB"
+      - "./pool.env:/public-pool/.env:ro"
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.public-pool-api.rule=Host(`REPLACE_ME_DOMAIN`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.public-pool-api.entrypoints=web"
+      - "traefik.http.services.public-pool-api.loadbalancer.server.port=3334"
+    profiles: [ "pool" ]
+
+  public-pool-ui:
+    container_name: public-pool-ui
+    image: ghcr.io/sethforprivacy/public-pool-ui:latest
+    restart: unless-stopped
+    environment:
+      - DOMAIN=REPLACE_ME_DOMAIN
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.public-pool-ui.rule=Host(`REPLACE_ME_DOMAIN`)"
+      - "traefik.http.routers.public-pool-ui.entrypoints=web"
+      - "traefik.http.services.public-pool-ui.loadbalancer.server.port=80"
+    profiles: [ "pool" ]
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    profiles: [ "pool" ]
+
+# reiterate names here to avoid default {project_name}_{volume_name} volume-name syntax
+volumes:
+  bitcoind-data:
+    name: bitcoind-data
+    external: true
+  public-pool-db:
+    name: public-pool-db
+    external: true

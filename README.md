@@ -14,7 +14,7 @@ This repo contains:
 
 ## Looking for Bitcoin Core images?
 
-The `bitcoind-k` (Bitcoin Knots) image here is drop-in replacements for the `bitcoin/bitcoin` (Bitcoin Core) images. If you're looking for actual Bitcoin Core images, go to [willcl-ark/bitcoin-core-docker](https://github.com/willcl-ark/bitcoin-core-docker).
+The `bitcoind-k` (Bitcoin Knots) image here is drop-in replacements for the `bitcoin/bitcoin` (Bitcoin Core) image. If you're looking for actual Bitcoin Core images, go to [willcl-ark/bitcoin-core-docker](https://github.com/willcl-ark/bitcoin-core-docker).
 
 ## About the images
 
@@ -67,8 +67,41 @@ The Public-Pool service/UI can be hosted locally (localhost is default), or host
 ### How to start the local node/mining-pool service
 Two scripts are provided here to simplify the process of starting/stopping the local Bitcoin node and Public-Pool service. They are simple wrappers of `docker-compose`, and are expected to be run from the repo's root directory.
 
-- `./scripts/start_node.sh`
-- `./scripts/stop_node.sh`
+- `./scripts/manage_node.sh`
+
+```sh
+Usage: ./scripts/manage_node.sh [OPTIONS]
+Options:
+ -h, --help     Display this help message
+ -n, --node     Specify the Bitcoin Nodes service
+ -p, --pool     Specify the Bitcoin Node & Mining pool services
+ -d, --daemon   Start the service in DAEMON mode (only applies to start action)
+ -s, --https    Run the POOL service over https (only affects the POOL service)
+ -a, --action   Action to be performed (required)
+       start    Start the specified service
+       stop     Stop the specified service
+       nlog     Display the logs for the Node service
+
+You must chose one of the 'n'/'p' options for the start/stop action. You can make
+the Pool ui/api available over HTTPS by specifying the 's' option.
+```
+
+For example:
+
+If you want to start only the Bitcoin Knots node (in daemon mode):
+```sh
+❯ ./scripts/manage_node.sh -nd -a start
+```
+
+If you want to start the Bitcoin Knots node with the Public-Pool mining pool (in daemon mode):
+```sh
+❯ ./scripts/manage_node.sh -pd -a start
+```
+
+If you want to start the Bitcoin Knots node with the Public-Pool mining pool over **HTTPS** (in daemon mode):
+```sh
+❯ ./scripts/manage_node.sh -pds -a start
+```
 
 ### How to use the Bitcoin Knots images
 

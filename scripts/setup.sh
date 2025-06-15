@@ -22,17 +22,25 @@ usage() {
 }
 
 handle_options() {
-  while getopts 'hard' flag; do
-    case $1 in
-      -h | --help) usage; exit 0 ;;
-      -a | --all) setup_all=true ;;
-      -r | --rpc) setup_rpc=true ;;
-      -d | --domain) setup_domain=true ;;
-      *)
-        echo "Invalid option: $1" >&2
-        usage
-        exit 1
-        ;;
+  # adapted from https://stackoverflow.com/a/28466267
+
+  die() { echo "$*" >&2; usage; exit 2; }  # complain to STDERR and exit with error
+  needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
+
+  while getopts hard-: OPT; do
+    # support long options: https://stackoverflow.com/a/28466267/519360
+    if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+      OPT="${OPTARG%%=*}"       # extract long option name
+      OPTARG="${OPTARG#"$OPT"}" # extract long option argument (may be empty)
+      OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+    fi
+    case "$OPT" in
+      h | help)    usage; exit 0 ;;
+      a | all)     setup_all=true ;;
+      r | rpc)     setup_rpc=true ;;
+      d | domain)  setup_domain=true ;;
+      \? )         usage; exit 2 ;;  # bad short option (error reported via getopts)
+      * )          die "Illegal option --$OPT" ;;            # bad long option
     esac
   done
 }
@@ -63,12 +71,31 @@ update_domain() {
     read -rp "Enter the email to be associated with the SSL certificate (or press Enter for 'example@example.com'): " EMAIL
     EMAIL=${EMAIL:-example@example.com}
 
-    # Update compose fields
-    sed -i '' "s/\(- \"--certificatesresolvers\.selfhostedservices\.acme\.email=\).*/\1$EMAIL\"/" compose.yml
+    if [[ $OSTYPE == 'darwin'* ]]; then
+        # macOS command
+        # Update https compose fields
+        sed -i '' "s/\(- \"--certificatesresolvers\.selfhostedservices\.acme\.email=\).*/\1$EMAIL\"/" compose_https.yml
+        sed -i '' "s/\(- \"traefik\.http\.routers\.public-pool-api\.rule=\).*/\1Host(\`$DOMAIN\`) \&\& PathPrefix(\\\`\/api\\\`)\"/" compose_https.yml
+        sed -i '' "s/\(- \"traefik\.http\.routers\.public-pool-ui\.rule=\).*/\1Host(\`$DOMAIN\`)\"/" compose_https.yml
+        sed -i '' "s/\(DOMAIN=\).*/\1$DOMAIN/" compose_https.yml
 
-    sed -i '' "s/\(- \"traefik\.http\.routers\.public-pool-api\.rule=\).*/\1Host(\`$DOMAIN\`) \&\& PathPrefix(`\/api`)\"/" compose.yml
-    sed -i '' "s/\(DOMAIN=\).*/\1\"$DOMAIN\"/" compose.yml
-    sed -i '' "s/\(- \"traefik\.http\.routers\.public-pool-ui\.rule=\).*/\1Host(\`$DOMAIN\`)\"/" compose.yml
+        # Update http compose fields
+        sed -i '' "s/\(- \"traefik\.http\.routers\.public-pool-api\.rule=\).*/\1Host(\`$DOMAIN\`) \&\& PathPrefix(\\\`\/api\\\`)\"/" compose_http.yml
+        sed -i '' "s/\(- \"traefik\.http\.routers\.public-pool-ui\.rule=\).*/\1Host(\`$DOMAIN\`)\"/" compose_http.yml
+        sed -i '' "s/\(DOMAIN=\).*/\1$DOMAIN/" compose_http.yml
+    else
+        # Ubuntu/Linux command
+        # Update https compose fields
+        sed -i "s/\(- \"--certificatesresolvers\.selfhostedservices\.acme\.email=\).*/\1$EMAIL\"/" compose_https.yml
+        sed -i "s/\(- \"traefik\.http\.routers\.public-pool-api\.rule=\).*/\1Host(\`$DOMAIN\`) \&\& PathPrefix(\\\`\/api\\\`)\"/" compose_https.yml
+        sed -i "s/\(- \"traefik\.http\.routers\.public-pool-ui\.rule=\).*/\1Host(\`$DOMAIN\`)\"/" compose_https.yml
+        sed -i "s/\(DOMAIN=\).*/\1$DOMAIN/" compose_https.yml
+
+        # Update http compose fields
+        sed -i "s/\(- \"traefik\.http\.routers\.public-pool-api\.rule=\).*/\1Host(\`$DOMAIN\`) \&\& PathPrefix(\\\`\/api\\\`)\"/" compose_http.yml
+        sed -i "s/\(- \"traefik\.http\.routers\.public-pool-ui\.rule=\).*/\1Host(\`$DOMAIN\`)\"/" compose_http.yml
+        sed -i "s/\(DOMAIN=\).*/\1$DOMAIN/" compose_http.yml
+    fi
 }
 
 handle_options "$@"
@@ -103,7 +130,7 @@ if [ "$UPDATE_MADE" = true ]; then
 
   if [ "$setup_domain" = true ] || [ "$setup_all" = true ] ; then
     echo ""
-    echo "These credentials have been automatically added to the compose.yml"
+    echo "These credentials have been automatically added to the docker-compose configurations"
     echo ""
     echo "Updated fields:"
     echo ""

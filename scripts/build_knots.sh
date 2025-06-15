@@ -22,7 +22,7 @@ handle_options() {
   die() { echo "$*" >&2; usage; exit 2; }  # complain to STDERR and exit with error
   needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-  while getopts hav:-: OPT; do  # allow -a, -b with arg, -c, and -- "with arg"
+  while getopts hav:-: OPT; do
     # support long options: https://stackoverflow.com/a/28466267/519360
     if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
       OPT="${OPTARG%%=*}"       # extract long option name
